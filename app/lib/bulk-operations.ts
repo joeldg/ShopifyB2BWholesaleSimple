@@ -1,6 +1,6 @@
-import { PrismaClient } from '@prisma/client';
+// import { PrismaClient } from '@prisma/client'; // Removed - using memory storage
 
-const prisma = new PrismaClient();
+// const prisma = new PrismaClient(); // Removed - using memory storage
 
 /**
  * Bulk operations for better merchant experience

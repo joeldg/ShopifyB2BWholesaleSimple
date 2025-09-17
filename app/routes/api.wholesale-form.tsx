@@ -1,8 +1,8 @@
 import { json, type ActionFunctionArgs, type LoaderFunctionArgs } from "@remix-run/node";
 import { useActionData, useLoaderData } from "@remix-run/react";
-import { PrismaClient } from "@prisma/client";
+// import { PrismaClient } from "@prisma/client"; // Removed - using memory storage
 
-const prisma = new PrismaClient();
+// const prisma = new PrismaClient(); // Removed - using memory storage
 
 export const loader = async ({ request }: LoaderFunctionArgs) => {
   // This endpoint can be used to render the form or get shop information

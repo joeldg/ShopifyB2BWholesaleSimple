@@ -21,9 +21,9 @@ import {
 import { TitleBar } from "@shopify/app-bridge-react";
 import { useState, useCallback } from "react";
 import { authenticate } from "../shopify.server";
-import { PrismaClient } from "@prisma/client";
+// import { PrismaClient } from "@prisma/client"; // Removed - using memory storage
 
-const prisma = new PrismaClient();
+// const prisma = new PrismaClient(); // Removed - using memory storage
 
 export const loader = async ({ request }: LoaderFunctionArgs) => {
   const { session } = await authenticate.admin(request);

@@ -148,10 +148,10 @@ export function registerCommonHealthChecks() {
   // Database health check
   healthChecker.register('database', async () => {
     try {
-      const { PrismaClient } = await import('@prisma/client');
-      const prisma = new PrismaClient();
-      await prisma.$queryRaw`SELECT 1`;
-      await prisma.$disconnect();
+      // const { PrismaClient } = await import('@prisma/client'); // Removed - using memory storage
+      // const prisma = new PrismaClient(); // Removed - using memory storage
+      // await prisma.$queryRaw`SELECT 1`;
+      // await prisma.$disconnect();
       return true;
     } catch (error) {
       console.error('Database health check failed:', error);

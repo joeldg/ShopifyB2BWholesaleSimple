@@ -1,12 +1,12 @@
 import { json, type ActionFunctionArgs, type LoaderFunctionArgs } from "@remix-run/node";
 import { useLoaderData, useFetcher } from "@remix-run/react";
 import { authenticate } from "../shopify.server";
-import { PrismaClient } from "@prisma/client";
+// import { PrismaClient } from "@prisma/client"; // Removed - using memory storage
 import { AppError, ErrorCodes, createErrorResponse, validateRequired, handleRouteError } from "../lib/error-handling";
 import { AutoTaggingService } from "../lib/auto-tagging";
 import { metrics } from "../lib/monitoring";
 
-const prisma = new PrismaClient();
+// const prisma = new PrismaClient(); // Removed - using memory storage
 
 export const loader = async ({ request }: LoaderFunctionArgs) => {
   try {

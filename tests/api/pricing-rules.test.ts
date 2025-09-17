@@ -2,9 +2,9 @@ import { describe, it, expect, vi, beforeEach } from 'vitest';
 import { createRemixStub } from '@remix-run/testing';
 import { json } from '@remix-run/node';
 
-vi.mock('@prisma/client', () => ({
-  PrismaClient: vi.fn(),
-}));
+// vi.mock('@prisma/client', () => ({ // Removed - using memory storage
+//   PrismaClient: vi.fn(),
+// }));
 
 // Mock Prisma
 const mockPrisma = {
@@ -33,8 +33,8 @@ describe('Pricing Rules API', () => {
   beforeEach(() => {
     vi.clearAllMocks();
     // Set up the mock to return our mockPrisma
-    const { PrismaClient } = require('@prisma/client');
-    (PrismaClient as any).mockReturnValue(mockPrisma);
+    // const { PrismaClient } = require('@prisma/client'); // Removed - using memory storage
+    // (PrismaClient as any).mockReturnValue(mockPrisma);
   });
 
   describe('GET /api/pricing-rules', () => {
