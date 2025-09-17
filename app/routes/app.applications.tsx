@@ -22,24 +22,16 @@ import {
 import { TitleBar } from "@shopify/app-bridge-react";
 import { useState, useCallback } from "react";
 import { authenticate } from "../shopify.server";
-import { PrismaClient } from "@prisma/client";
-
-const prisma = new PrismaClient();
+// Temporarily disabled database queries - using memory session storage
+// import { PrismaClient } from "@prisma/client";
+// const prisma = new PrismaClient();
 
 export const loader = async ({ request }: LoaderFunctionArgs) => {
   const { session } = await authenticate.admin(request);
   
-  try {
-    const applications = await prisma.wholesaleApplication.findMany({
-      where: { shop: session.shop },
-      orderBy: { createdAt: 'desc' },
-    });
-    
-    return json({ applications });
-  } catch (error) {
-    console.error("Error fetching applications:", error);
-    return json({ applications: [], error: "Failed to fetch applications" });
-  }
+  // Return empty data for now since we're using memory session storage
+  // TODO: Set up database properly or implement alternative storage
+  return json({ applications: [] });
 };
 
 export const action = async ({ request }: ActionFunctionArgs) => {
@@ -47,58 +39,9 @@ export const action = async ({ request }: ActionFunctionArgs) => {
   const formData = await request.formData();
   const action = formData.get("_action") as string;
 
-  try {
-    switch (action) {
-      case "approve": {
-        const id = formData.get("id") as string;
-        
-        const application = await prisma.wholesaleApplication.update({
-          where: { id },
-          data: { 
-            status: "approved",
-            reviewedAt: new Date(),
-            reviewedBy: session.shop, // In a real app, this would be the admin user ID
-          },
-        });
-        
-        // TODO: Add customer tag via Shopify API
-        // This would require calling the Shopify Admin API to add the tag to the customer
-        
-        return json({ success: true, application });
-      }
-      
-      case "reject": {
-        const id = formData.get("id") as string;
-        
-        const application = await prisma.wholesaleApplication.update({
-          where: { id },
-          data: { 
-            status: "rejected",
-            reviewedAt: new Date(),
-            reviewedBy: session.shop, // In a real app, this would be the admin user ID
-          },
-        });
-        
-        return json({ success: true, application });
-      }
-      
-      case "delete": {
-        const id = formData.get("id") as string;
-        
-        await prisma.wholesaleApplication.delete({
-          where: { id },
-        });
-        
-        return json({ success: true });
-      }
-      
-      default:
-        return json({ error: "Invalid action" }, { status: 400 });
-    }
-  } catch (error) {
-    console.error("Error in applications action:", error);
-    return json({ error: "Failed to process request" }, { status: 500 });
-  }
+  // Temporarily disabled database operations - using memory session storage
+  // TODO: Set up database properly or implement alternative storage
+  return json({ error: "Database operations temporarily disabled" }, { status: 503 });
 };
 
 export default function Applications() {

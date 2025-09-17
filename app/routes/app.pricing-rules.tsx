@@ -21,24 +21,16 @@ import {
 import { TitleBar } from "@shopify/app-bridge-react";
 import { useState, useCallback } from "react";
 import { authenticate } from "../shopify.server";
-import { PrismaClient } from "@prisma/client";
-
-const prisma = new PrismaClient();
+// Temporarily disabled database queries - using memory session storage
+// import { PrismaClient } from "@prisma/client";
+// const prisma = new PrismaClient();
 
 export const loader = async ({ request }: LoaderFunctionArgs) => {
   const { session } = await authenticate.admin(request);
   
-  try {
-    const pricingRules = await prisma.pricingRule.findMany({
-      where: { shop: session.shop },
-      orderBy: { priority: 'desc' },
-    });
-    
-    return json({ pricingRules });
-  } catch (error) {
-    console.error("Error fetching pricing rules:", error);
-    return json({ pricingRules: [], error: "Failed to fetch pricing rules" });
-  }
+  // Return empty data for now since we're using memory session storage
+  // TODO: Set up database properly or implement alternative storage
+  return json({ pricingRules: [] });
 };
 
 export const action = async ({ request }: ActionFunctionArgs) => {
@@ -46,80 +38,9 @@ export const action = async ({ request }: ActionFunctionArgs) => {
   const formData = await request.formData();
   const action = formData.get("_action") as string;
 
-  try {
-    switch (action) {
-      case "create": {
-        const customerTags = JSON.parse(formData.get("customerTags") as string || "[]");
-        const productIds = JSON.parse(formData.get("productIds") as string || "[]");
-        const collectionIds = JSON.parse(formData.get("collectionIds") as string || "[]");
-        
-        const pricingRule = await prisma.pricingRule.create({
-          data: {
-            shop: session.shop,
-            customerTags,
-            productIds,
-            collectionIds,
-            discountType: formData.get("discountType") as string,
-            discountValue: parseFloat(formData.get("discountValue") as string),
-            priority: parseInt(formData.get("priority") as string) || 0,
-            isActive: formData.get("isActive") === "true",
-          },
-        });
-        
-        return json({ success: true, pricingRule });
-      }
-      
-      case "update": {
-        const id = formData.get("id") as string;
-        const customerTags = JSON.parse(formData.get("customerTags") as string || "[]");
-        const productIds = JSON.parse(formData.get("productIds") as string || "[]");
-        const collectionIds = JSON.parse(formData.get("collectionIds") as string || "[]");
-        
-        const pricingRule = await prisma.pricingRule.update({
-          where: { id },
-          data: {
-            customerTags,
-            productIds,
-            collectionIds,
-            discountType: formData.get("discountType") as string,
-            discountValue: parseFloat(formData.get("discountValue") as string),
-            priority: parseInt(formData.get("priority") as string) || 0,
-            isActive: formData.get("isActive") === "true",
-          },
-        });
-        
-        return json({ success: true, pricingRule });
-      }
-      
-      case "delete": {
-        const id = formData.get("id") as string;
-        
-        await prisma.pricingRule.delete({
-          where: { id },
-        });
-        
-        return json({ success: true });
-      }
-      
-      case "toggle": {
-        const id = formData.get("id") as string;
-        const isActive = formData.get("isActive") === "true";
-        
-        await prisma.pricingRule.update({
-          where: { id },
-          data: { isActive },
-        });
-        
-        return json({ success: true });
-      }
-      
-      default:
-        return json({ error: "Invalid action" }, { status: 400 });
-    }
-  } catch (error) {
-    console.error("Error in pricing rules action:", error);
-    return json({ error: "Failed to process request" }, { status: 500 });
-  }
+  // Temporarily disabled database operations - using memory session storage
+  // TODO: Set up database properly or implement alternative storage
+  return json({ error: "Database operations temporarily disabled" }, { status: 503 });
 };
 
 export default function PricingRules() {

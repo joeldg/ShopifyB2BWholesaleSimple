@@ -1,26 +1,21 @@
 import { json, type ActionFunctionArgs, type LoaderFunctionArgs } from "@remix-run/node";
 import { useLoaderData, useFetcher } from "@remix-run/react";
 import { authenticate } from "../shopify.server";
-import { PrismaClient } from "@prisma/client";
-import { AppError, ErrorCodes, createErrorResponse, validateRequired, validateDiscountValue, validateCustomerTags, handleRouteError } from "../lib/error-handling";
-import { measurePerformance, metrics } from "../lib/monitoring";
-
-const prisma = new PrismaClient();
+// Temporarily disabled database queries - using memory session storage
+// import { PrismaClient } from "@prisma/client";
+// import { AppError, ErrorCodes, createErrorResponse, validateRequired, validateDiscountValue, validateCustomerTags, handleRouteError } from "../lib/error-handling";
+// import { measurePerformance, metrics } from "../lib/monitoring";
+// const prisma = new PrismaClient();
 
 export const loader = async ({ request }: LoaderFunctionArgs) => {
   try {
     const { session } = await authenticate.admin(request);
     
-    const pricingRules = await prisma.pricingRule.findMany({
-      where: { shop: session.shop },
-      orderBy: { priority: 'desc' },
-    });
-    
-    metrics.record('pricing_rules.fetched', pricingRules.length);
-    return json({ pricingRules });
+    // Return empty data for now since we're using memory session storage
+    // TODO: Set up database properly or implement alternative storage
+    return json({ pricingRules: [] });
   } catch (error) {
-    metrics.record('pricing_rules.fetch_error', 1);
-    return handleRouteError(error);
+    return json({ error: "Failed to fetch pricing rules" }, { status: 500 });
   }
 };
 
