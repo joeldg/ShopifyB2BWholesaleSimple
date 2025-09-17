@@ -5,9 +5,10 @@ import {
   shopifyApp,
 } from "@shopify/shopify-app-remix/server";
 import { PrismaSessionStorage } from "@shopify/shopify-app-session-storage-prisma";
+import { MemorySessionStorage } from "@shopify/shopify-app-session-storage-memory";
 import prisma from "./db.server";
 
-// Debug: Test database connection
+// Debug: Test database connection (non-blocking)
 console.log('🔍 Testing database connection...');
 prisma.$connect()
   .then(() => {
@@ -19,6 +20,7 @@ prisma.$connect()
   })
   .catch((error) => {
     console.error('❌ Database connection failed:', error);
+    console.log('⚠️ App will continue without database connection');
   });
 
 const shopify = shopifyApp({
@@ -28,11 +30,18 @@ const shopify = shopifyApp({
   scopes: process.env.SHOPIFY_SCOPES?.split(",") || ["read_products", "write_products", "read_customers", "write_customers", "read_orders", "write_orders"],
   appUrl: process.env.SHOPIFY_APP_URL || "",
   authPathPrefix: "/auth",
-  sessionStorage: new PrismaSessionStorage(prisma, {
-    onError: (error) => {
-      console.error('❌ Session storage error:', error);
-    },
-  }),
+  sessionStorage: (() => {
+    try {
+      return new PrismaSessionStorage(prisma, {
+        onError: (error) => {
+          console.error('❌ Session storage error:', error);
+        },
+      });
+    } catch (error) {
+      console.error('❌ Failed to create Prisma session storage, falling back to memory storage:', error);
+      return new MemorySessionStorage();
+    }
+  })(),
   distribution: AppDistribution.AppStore,
   future: {
     unstable_newEmbeddedAuthStrategy: true,
