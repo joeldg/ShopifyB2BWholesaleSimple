@@ -26,23 +26,8 @@ import pool from "../db.server";
 export const loader = async ({ request }: LoaderFunctionArgs) => {
   const { session } = await authenticate.admin(request);
   
-  try {
-    const client = await pool.connect();
-    
-    try {
-      const result = await client.query(
-        'SELECT * FROM "PricingRule" WHERE "shop" = $1 ORDER BY "priority" DESC',
-        [session.shop]
-      );
-      
-      return json({ pricingRules: result.rows });
-    } finally {
-      client.release();
-    }
-  } catch (error) {
-    console.error("Error fetching pricing rules:", error);
-    return json({ pricingRules: [], error: "Failed to fetch pricing rules" });
-  }
+  // Temporarily return empty data - database not set up yet
+  return json({ pricingRules: [] });
 };
 
 export const action = async ({ request }: ActionFunctionArgs) => {

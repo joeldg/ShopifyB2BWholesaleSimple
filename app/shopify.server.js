@@ -17,14 +17,7 @@ const shopify = shopifyApp({
   scopes: process.env.SHOPIFY_SCOPES?.split(",") || ["read_products", "write_products", "read_customers", "write_customers", "read_orders", "write_orders"],
   appUrl: process.env.SHOPIFY_APP_URL || "",
   authPathPrefix: "/auth",
-  sessionStorage: (() => {
-    try {
-      return new PgSessionStorage();
-    } catch (error) {
-      console.error('❌ Failed to create PostgreSQL session storage, falling back to memory storage:', error);
-      return new MemorySessionStorage();
-    }
-  })(),
+  sessionStorage: new MemorySessionStorage(),
   distribution: AppDistribution.AppStore,
   future: {
     unstable_newEmbeddedAuthStrategy: true,
