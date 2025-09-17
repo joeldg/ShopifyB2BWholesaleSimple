@@ -4,10 +4,12 @@ import {
   AppDistribution,
   shopifyApp,
 } from "@shopify/shopify-app-remix/server";
+import { PrismaSessionStorage } from "@shopify/shopify-app-session-storage-prisma";
 import { MemorySessionStorage } from "@shopify/shopify-app-session-storage-memory";
+import prisma from "./db.server";
 
-// Using memory session storage for now
-console.log('🔍 Using memory session storage');
+// Try to use Prisma session storage, fallback to memory if it fails
+console.log('🔍 Attempting to use Prisma session storage...');
 
 const shopify = shopifyApp({
   apiKey: process.env.SHOPIFY_API_KEY,
@@ -16,7 +18,18 @@ const shopify = shopifyApp({
   scopes: process.env.SHOPIFY_SCOPES?.split(",") || ["read_products", "write_products", "read_customers", "write_customers", "read_orders", "write_orders"],
   appUrl: process.env.SHOPIFY_APP_URL || "",
   authPathPrefix: "/auth",
-  sessionStorage: new MemorySessionStorage(),
+  sessionStorage: (() => {
+    try {
+      return new PrismaSessionStorage(prisma, {
+        onError: (error) => {
+          console.error('❌ Session storage error:', error);
+        },
+      });
+    } catch (error) {
+      console.error('❌ Failed to create Prisma session storage, falling back to memory storage:', error);
+      return new MemorySessionStorage();
+    }
+  })(),
   distribution: AppDistribution.AppStore,
   future: {
     unstable_newEmbeddedAuthStrategy: true,
