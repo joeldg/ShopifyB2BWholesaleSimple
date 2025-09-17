@@ -28,8 +28,6 @@ RUN cargo build --release
 WORKDIR /app
 RUN npm run build
 
-# Generate Prisma client
-RUN npx prisma generate
 
 # Ensure public directory exists
 RUN mkdir -p /app/public
@@ -50,12 +48,7 @@ COPY --from=builder --chown=remix:nodejs /app/public ./public
 COPY --from=deps --chown=remix:nodejs /app/node_modules ./node_modules
 COPY --from=builder --chown=remix:nodejs /app/package.json ./package.json
 
-# Copy Prisma schema and generated client
-COPY --from=builder --chown=remix:nodejs /app/prisma ./prisma
-COPY --from=builder --chown=remix:nodejs /app/node_modules/.prisma ./node_modules/.prisma
 
-# Create a directory for the database
-RUN mkdir -p /app/data && chown remix:nodejs /app/data
 
 USER remix
 

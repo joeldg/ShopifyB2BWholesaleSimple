@@ -2,7 +2,7 @@ services:
   - type: web
     name: b2b-wholesale-simplifier
     env: node
-    plan: free
+    plan: hobby
     buildCommand: npm ci && npm run build
     startCommand: npm start
     envVars:
@@ -37,4 +37,4 @@ databases:
   - name: b2b-wholesale-simplifier-db
     databaseName: b2b_wholesale_simplifier
     user: b2b_wholesale_simplifier_user
-    plan: free
+    plan: hobby
