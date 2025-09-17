@@ -5,10 +5,19 @@ import {
   shopifyApp,
 } from "@shopify/shopify-app-remix/server";
 import { MemorySessionStorage } from "@shopify/shopify-app-session-storage-memory";
-import { PgSessionStorage } from "./session-storage.server";
+import { FileSessionStorage } from "./file-session-storage.server";
 
-// Try to use PostgreSQL session storage, fallback to memory if it fails
-console.log('🔍 Attempting to use PostgreSQL session storage...');
+// Use file-based session storage for persistence
+console.log('🔍 Using file-based session storage for persistence...');
+
+let sessionStorage;
+try {
+  sessionStorage = new FileSessionStorage();
+  console.log('✅ Using file-based session storage');
+} catch (error) {
+  console.log('⚠️  File session storage failed, using memory storage:', error.message);
+  sessionStorage = new MemorySessionStorage();
+}
 
 const shopify = shopifyApp({
   apiKey: process.env.SHOPIFY_API_KEY,
@@ -17,7 +26,7 @@ const shopify = shopifyApp({
   scopes: process.env.SHOPIFY_SCOPES?.split(",") || ["read_products", "write_products", "read_customers", "write_customers", "read_orders", "write_orders"],
   appUrl: process.env.SHOPIFY_APP_URL || "",
   authPathPrefix: "/auth",
-  sessionStorage: new MemorySessionStorage(),
+  sessionStorage: sessionStorage,
   distribution: AppDistribution.AppStore,
   future: {
     unstable_newEmbeddedAuthStrategy: true,
