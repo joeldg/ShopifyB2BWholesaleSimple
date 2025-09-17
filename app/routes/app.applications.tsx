@@ -22,20 +22,24 @@ import {
 import { TitleBar } from "@shopify/app-bridge-react";
 import { useState, useCallback } from "react";
 import { authenticate } from "../shopify.server";
-import { PrismaClient } from "@prisma/client";
-
-const prisma = new PrismaClient();
+import pool from "../db.server";
 
 export const loader = async ({ request }: LoaderFunctionArgs) => {
   const { session } = await authenticate.admin(request);
   
   try {
-    const applications = await prisma.wholesaleApplication.findMany({
-      where: { shop: session.shop },
-      orderBy: { createdAt: 'desc' },
-    });
+    const client = await pool.connect();
     
-    return json({ applications });
+    try {
+      const result = await client.query(
+        'SELECT * FROM "WholesaleApplication" WHERE "shop" = $1 ORDER BY "createdAt" DESC',
+        [session.shop]
+      );
+      
+      return json({ applications: result.rows });
+    } finally {
+      client.release();
+    }
   } catch (error) {
     console.error("Error fetching applications:", error);
     return json({ applications: [], error: "Failed to fetch applications" });
@@ -48,52 +52,48 @@ export const action = async ({ request }: ActionFunctionArgs) => {
   const action = formData.get("_action") as string;
 
   try {
-    switch (action) {
-      case "approve": {
-        const id = formData.get("id") as string;
+    const client = await pool.connect();
+    
+    try {
+      switch (action) {
+        case "approve": {
+          const id = formData.get("id") as string;
+          
+          const result = await client.query(
+            'UPDATE "WholesaleApplication" SET "status" = $1, "reviewedAt" = $2, "reviewedBy" = $3 WHERE "id" = $4 RETURNING *',
+            ["approved", new Date(), session.shop, id]
+          );
+          
+          // TODO: Add customer tag via Shopify API
+          // This would require calling the Shopify Admin API to add the tag to the customer
+          
+          return json({ success: true, application: result.rows[0] });
+        }
         
-        const application = await prisma.wholesaleApplication.update({
-          where: { id },
-          data: { 
-            status: "approved",
-            reviewedAt: new Date(),
-            reviewedBy: session.shop, // In a real app, this would be the admin user ID
-          },
-        });
+        case "reject": {
+          const id = formData.get("id") as string;
+          
+          const result = await client.query(
+            'UPDATE "WholesaleApplication" SET "status" = $1, "reviewedAt" = $2, "reviewedBy" = $3 WHERE "id" = $4 RETURNING *',
+            ["rejected", new Date(), session.shop, id]
+          );
+          
+          return json({ success: true, application: result.rows[0] });
+        }
         
-        // TODO: Add customer tag via Shopify API
-        // This would require calling the Shopify Admin API to add the tag to the customer
+        case "delete": {
+          const id = formData.get("id") as string;
+          
+          await client.query('DELETE FROM "WholesaleApplication" WHERE "id" = $1', [id]);
+          
+          return json({ success: true });
+        }
         
-        return json({ success: true, application });
+        default:
+          return json({ error: "Invalid action" }, { status: 400 });
       }
-      
-      case "reject": {
-        const id = formData.get("id") as string;
-        
-        const application = await prisma.wholesaleApplication.update({
-          where: { id },
-          data: { 
-            status: "rejected",
-            reviewedAt: new Date(),
-            reviewedBy: session.shop, // In a real app, this would be the admin user ID
-          },
-        });
-        
-        return json({ success: true, application });
-      }
-      
-      case "delete": {
-        const id = formData.get("id") as string;
-        
-        await prisma.wholesaleApplication.delete({
-          where: { id },
-        });
-        
-        return json({ success: true });
-      }
-      
-      default:
-        return json({ error: "Invalid action" }, { status: 400 });
+    } finally {
+      client.release();
     }
   } catch (error) {
     console.error("Error in applications action:", error);

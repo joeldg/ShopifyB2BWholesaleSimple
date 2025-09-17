@@ -1,28 +1,21 @@
-import { PrismaClient } from "@prisma/client";
+import { Pool } from 'pg';
 
-// Configure Prisma for pgbouncer compatibility
-const prismaConfig = {
-  datasources: {
-    db: {
-      url: process.env.DATABASE_URL,
-    },
-  },
-  // Disable prepared statements for pgbouncer compatibility
-  log: process.env.NODE_ENV === "development" ? ["query", "error", "warn"] : ["error"],
-  // Add pgbouncer-specific configuration
-  __internal: {
-    engine: {
-      prepared_statements: false,
-    },
-  },
-};
+// Create a connection pool
+const pool = new Pool({
+  connectionString: process.env.DATABASE_URL,
+  ssl: process.env.NODE_ENV === 'production' ? { rejectUnauthorized: false } : false,
+  max: 1, // Single connection for Render
+  idleTimeoutMillis: 30000,
+  connectionTimeoutMillis: 2000,
+});
 
-if (process.env.NODE_ENV !== "production") {
-  if (!global.prismaGlobal) {
-    global.prismaGlobal = new PrismaClient(prismaConfig);
-  }
-}
+// Test connection
+pool.on('connect', () => {
+  console.log('✅ Database connected');
+});
 
-const prisma = global.prismaGlobal ?? new PrismaClient(prismaConfig);
+pool.on('error', (err) => {
+  console.error('❌ Database connection error:', err);
+});
 
-export default prisma;
+export default pool;

@@ -21,20 +21,24 @@ import {
 import { TitleBar } from "@shopify/app-bridge-react";
 import { useState, useCallback } from "react";
 import { authenticate } from "../shopify.server";
-import { PrismaClient } from "@prisma/client";
-
-const prisma = new PrismaClient();
+import pool from "../db.server";
 
 export const loader = async ({ request }: LoaderFunctionArgs) => {
   const { session } = await authenticate.admin(request);
   
   try {
-    const pricingRules = await prisma.pricingRule.findMany({
-      where: { shop: session.shop },
-      orderBy: { priority: 'desc' },
-    });
+    const client = await pool.connect();
     
-    return json({ pricingRules });
+    try {
+      const result = await client.query(
+        'SELECT * FROM "PricingRule" WHERE "shop" = $1 ORDER BY "priority" DESC',
+        [session.shop]
+      );
+      
+      return json({ pricingRules: result.rows });
+    } finally {
+      client.release();
+    }
   } catch (error) {
     console.error("Error fetching pricing rules:", error);
     return json({ pricingRules: [], error: "Failed to fetch pricing rules" });
@@ -47,74 +51,87 @@ export const action = async ({ request }: ActionFunctionArgs) => {
   const action = formData.get("_action") as string;
 
   try {
-    switch (action) {
-      case "create": {
-        const customerTags = JSON.parse(formData.get("customerTags") as string || "[]");
-        const productIds = JSON.parse(formData.get("productIds") as string || "[]");
-        const collectionIds = JSON.parse(formData.get("collectionIds") as string || "[]");
+    const client = await pool.connect();
+    
+    try {
+      switch (action) {
+        case "create": {
+          const customerTags = JSON.parse(formData.get("customerTags") as string || "[]");
+          const productIds = JSON.parse(formData.get("productIds") as string || "[]");
+          const collectionIds = JSON.parse(formData.get("collectionIds") as string || "[]");
+          
+          const result = await client.query(
+            `INSERT INTO "PricingRule" (
+              "shop", "customerTags", "productIds", "collectionIds", 
+              "discountType", "discountValue", "priority", "isActive"
+            ) VALUES ($1, $2, $3, $4, $5, $6, $7, $8) RETURNING *`,
+            [
+              session.shop,
+              JSON.stringify(customerTags),
+              JSON.stringify(productIds),
+              JSON.stringify(collectionIds),
+              formData.get("discountType") as string,
+              parseFloat(formData.get("discountValue") as string),
+              parseInt(formData.get("priority") as string) || 0,
+              formData.get("isActive") === "true"
+            ]
+          );
+          
+          return json({ success: true, pricingRule: result.rows[0] });
+        }
         
-        const pricingRule = await prisma.pricingRule.create({
-          data: {
-            shop: session.shop,
-            customerTags,
-            productIds,
-            collectionIds,
-            discountType: formData.get("discountType") as string,
-            discountValue: parseFloat(formData.get("discountValue") as string),
-            priority: parseInt(formData.get("priority") as string) || 0,
-            isActive: formData.get("isActive") === "true",
-          },
-        });
+        case "update": {
+          const id = formData.get("id") as string;
+          const customerTags = JSON.parse(formData.get("customerTags") as string || "[]");
+          const productIds = JSON.parse(formData.get("productIds") as string || "[]");
+          const collectionIds = JSON.parse(formData.get("collectionIds") as string || "[]");
+          
+          const result = await client.query(
+            `UPDATE "PricingRule" SET 
+              "customerTags" = $1, "productIds" = $2, "collectionIds" = $3,
+              "discountType" = $4, "discountValue" = $5, "priority" = $6, 
+              "isActive" = $7, "updatedAt" = NOW()
+              WHERE "id" = $8 RETURNING *`,
+            [
+              JSON.stringify(customerTags),
+              JSON.stringify(productIds),
+              JSON.stringify(collectionIds),
+              formData.get("discountType") as string,
+              parseFloat(formData.get("discountValue") as string),
+              parseInt(formData.get("priority") as string) || 0,
+              formData.get("isActive") === "true",
+              id
+            ]
+          );
+          
+          return json({ success: true, pricingRule: result.rows[0] });
+        }
         
-        return json({ success: true, pricingRule });
+        case "delete": {
+          const id = formData.get("id") as string;
+          
+          await client.query('DELETE FROM "PricingRule" WHERE "id" = $1', [id]);
+          
+          return json({ success: true });
+        }
+        
+        case "toggle": {
+          const id = formData.get("id") as string;
+          const isActive = formData.get("isActive") === "true";
+          
+          const result = await client.query(
+            'UPDATE "PricingRule" SET "isActive" = $1, "updatedAt" = NOW() WHERE "id" = $2 RETURNING *',
+            [isActive, id]
+          );
+          
+          return json({ success: true, pricingRule: result.rows[0] });
+        }
+        
+        default:
+          return json({ error: "Invalid action" }, { status: 400 });
       }
-      
-      case "update": {
-        const id = formData.get("id") as string;
-        const customerTags = JSON.parse(formData.get("customerTags") as string || "[]");
-        const productIds = JSON.parse(formData.get("productIds") as string || "[]");
-        const collectionIds = JSON.parse(formData.get("collectionIds") as string || "[]");
-        
-        const pricingRule = await prisma.pricingRule.update({
-          where: { id },
-          data: {
-            customerTags,
-            productIds,
-            collectionIds,
-            discountType: formData.get("discountType") as string,
-            discountValue: parseFloat(formData.get("discountValue") as string),
-            priority: parseInt(formData.get("priority") as string) || 0,
-            isActive: formData.get("isActive") === "true",
-          },
-        });
-        
-        return json({ success: true, pricingRule });
-      }
-      
-      case "delete": {
-        const id = formData.get("id") as string;
-        
-        await prisma.pricingRule.delete({
-          where: { id },
-        });
-        
-        return json({ success: true });
-      }
-      
-      case "toggle": {
-        const id = formData.get("id") as string;
-        const isActive = formData.get("isActive") === "true";
-        
-        const pricingRule = await prisma.pricingRule.update({
-          where: { id },
-          data: { isActive },
-        });
-        
-        return json({ success: true, pricingRule });
-      }
-      
-      default:
-        return json({ error: "Invalid action" }, { status: 400 });
+    } finally {
+      client.release();
     }
   } catch (error) {
     console.error("Error in pricing rules action:", error);

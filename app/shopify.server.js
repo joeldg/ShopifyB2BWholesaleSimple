@@ -4,12 +4,11 @@ import {
   AppDistribution,
   shopifyApp,
 } from "@shopify/shopify-app-remix/server";
-import { PrismaSessionStorage } from "@shopify/shopify-app-session-storage-prisma";
 import { MemorySessionStorage } from "@shopify/shopify-app-session-storage-memory";
-import prisma from "./db.server";
+import { PgSessionStorage } from "./session-storage.server";
 
-// Try to use Prisma session storage, fallback to memory if it fails
-console.log('🔍 Attempting to use Prisma session storage...');
+// Try to use PostgreSQL session storage, fallback to memory if it fails
+console.log('🔍 Attempting to use PostgreSQL session storage...');
 
 const shopify = shopifyApp({
   apiKey: process.env.SHOPIFY_API_KEY,
@@ -20,13 +19,9 @@ const shopify = shopifyApp({
   authPathPrefix: "/auth",
   sessionStorage: (() => {
     try {
-      return new PrismaSessionStorage(prisma, {
-        onError: (error) => {
-          console.error('❌ Session storage error:', error);
-        },
-      });
+      return new PgSessionStorage();
     } catch (error) {
-      console.error('❌ Failed to create Prisma session storage, falling back to memory storage:', error);
+      console.error('❌ Failed to create PostgreSQL session storage, falling back to memory storage:', error);
       return new MemorySessionStorage();
     }
   })(),
