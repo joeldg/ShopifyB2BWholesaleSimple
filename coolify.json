@@ -1,0 +1,20 @@
+{
+  "name": "b2b-wholesale-simplifier",
+  "type": "nodejs",
+  "buildCommand": "npm run build",
+  "startCommand": "npm start",
+  "nodeVersion": "18",
+  "environment": {
+    "NODE_ENV": "production",
+    "PORT": "3000"
+  },
+  "database": {
+    "type": "postgresql",
+    "name": "b2b_wholesale_simplifier"
+  },
+  "domains": [
+    "b2b-wholesale-simplifier.3.101.146.38.nip.io"
+  ]
+}
+
+
