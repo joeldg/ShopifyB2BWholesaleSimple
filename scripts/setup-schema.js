@@ -1,4 +1,5 @@
 #!/usr/bin/env node
+// Force fresh build - Render cache clear
 
 import { Pool } from 'pg';
 import { fileURLToPath } from 'url';
