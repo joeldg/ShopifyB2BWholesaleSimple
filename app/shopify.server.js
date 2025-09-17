@@ -5,19 +5,10 @@ import {
   shopifyApp,
 } from "@shopify/shopify-app-remix/server";
 import { MemorySessionStorage } from "@shopify/shopify-app-session-storage-memory";
-import { FileSessionStorage } from "./file-session-storage.server";
 
-// Use file-based session storage for persistence
-console.log('🔍 Using file-based session storage for persistence...');
-
-let sessionStorage;
-try {
-  sessionStorage = new FileSessionStorage();
-  console.log('✅ Using file-based session storage');
-} catch (error) {
-  console.log('⚠️  File session storage failed, using memory storage:', error.message);
-  sessionStorage = new MemorySessionStorage();
-}
+// Use memory session storage for now
+console.log('🔍 Using memory session storage...');
+const sessionStorage = new MemorySessionStorage();
 
 const shopify = shopifyApp({
   apiKey: process.env.SHOPIFY_API_KEY,
